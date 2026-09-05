@@ -191,17 +191,19 @@ came from — a real-model eval result is a point-in-time snapshot (tagged
 with the provider, model, prompt hash, and rubric version that produced
 it), not a permanent property of this system, and the ADR is the place to
 check for whatever the latest snapshot says rather than trusting a number
-quoted here to still be current. As of the snapshots referenced there: 3/3
+quoted here to still be current. In the referenced real-model evaluations
+(`backend/eval-results/golden-case-20260905T194108Z.json` and
+`backend/eval-results/judge-reliability-20260905T194210Z.json`): 3/3
 golden papers landed in the right score band, and 8/10 calibration probes
 (one per named failure mode — hype language, benchmark-only results,
 cross-domain transfer, pure scaling, weak evidence for a strong claim,
-...) did too, reproduced across two independent runs. The two misses are
-reported as found, not tuned away: the judge measurably under-penalizes
-strong claims backed by weak evidence — a real calibration gap, and
-exactly the kind of finding this eval exists to surface. Both scripts also
-run fully offline as CI smoke tests — not a quality gate in that mode,
-and never writing to `eval-results/`, since the fake judge is a keyword
-heuristic, not a real judgment.
+...) did too. The two misses are reported as found, not tuned away: the
+judge measurably under-penalized strong claims backed by weak evidence in
+that run — a real calibration finding, and exactly the kind of thing this
+eval exists to surface. Both scripts also run fully offline as CI smoke
+tests — not a quality gate in that mode, and never writing to
+`eval-results/`, since the fake judge is a keyword heuristic, not a real
+judgment.
 
 ## What the score means
 

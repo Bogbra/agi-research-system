@@ -66,9 +66,8 @@ Referenced snapshots (`gpt-4o-mini`, `provider=openai`,
   High scored 77.1/100 (band 70-100) — correctly ordered and correctly
   banded, no fixture tuning needed to get there.
 - **Calibration — [`eval-results/judge-reliability-20260905T194210Z.json`](../../backend/eval-results/judge-reliability-20260905T194210Z.json): 8/10 passed.**
-  Two real misses, reported as found rather than adjusted after the fact,
-  and reproduced (same two cases, similar scores) across two independent
-  real runs on the same day:
+  Two calibration misses were observed in the referenced real-model
+  evaluation, reported as found rather than adjusted after the fact:
   - `reasoning-improvement-limited-to-one-benchmark` scored 40.9, one point
     above its expected [10, 40] band — a near-miss at the boundary,
     plausibly a case where the expected band was drawn slightly too tight
@@ -78,26 +77,26 @@ Referenced snapshots (`gpt-4o-mini`, `provider=openai`,
     reasoning capability applicable to any domain" backed by one small
     synthetic dataset with no baselines or ablations — the judge gave this
     meaningfully more credit than the (thin) evidence supports, the exact
-    failure mode this probe was built to catch. This is a genuine,
-    reproducible calibration gap, not a fixture-tuning artifact: the
-    fixture was not adjusted after seeing this result, in either run.
+    failure mode this probe was built to catch. In this run, at least,
+    it's a genuine calibration gap, not a fixture-tuning artifact: the
+    fixture was not adjusted after seeing this result.
   - Every other probe — including the hype-language case, the
     conservative-wording case, and the deliberately ambiguous
-    borderline case — landed inside its expected band in both runs.
+    borderline case — landed inside its expected band in this run.
 - **Self-consistency (same snapshot file, `self_consistency` key): scores
-  `[62.3, 62.3, 63.8]`, stdev 0.71.** Tight enough that a single run's
-  score is a reasonable signal on its own; this is worth re-checking if
-  the model or prompt changes, not assumed to hold forever. (An earlier
-  run the same day recorded stdev 0.09 on a different fixed paper
-  instance — both small, neither a claim of a fixed stdev going forward.)
-- The honest summary: this judge is reasonably well-calibrated against
-  hype/vocabulary tricks and narrow-vs-broad framing, but measurably
-  under-penalizes strong claims backed by weak evidence — a real, useful
-  finding rather than a clean pass, and exactly what this eval exists to
-  surface, confirmed reproducible rather than a one-off fluke. Ten cases
-  is still not a statistically representative sample — see
-  `judge_reliability.py`'s own docstring — but it's wide enough now to
-  have caught something, which two cases was not.
+  `[62.3, 62.3, 63.8]`, stdev 0.71.** Tight enough that this single run's
+  score looks like a reasonable signal on its own; this is worth
+  re-checking whenever the model or prompt changes, not assumed to hold
+  indefinitely from one measurement.
+- The honest summary, scoped to this one referenced snapshot: the judge
+  scored substance over vocabulary correctly on 8 of 10 probes, but
+  measurably under-penalized strong claims backed by weak evidence on the
+  ninth — a real, useful finding rather than a clean pass, and exactly
+  what this eval exists to surface. Ten cases is still not a
+  statistically representative sample — see `judge_reliability.py`'s own
+  docstring — and a single run is not a claim that these exact two
+  probes will miss again; a second dated snapshot, added the same way as
+  this one, would be needed to say anything about repeatability.
 - Both eval scripts run fully offline as CI smoke tests (`LLM_PROVIDER=fake`,
   exit 0 regardless of score match, and never write to `eval-results/` in
   that mode — see `result_logging.py`) and are otherwise a manual/periodic
