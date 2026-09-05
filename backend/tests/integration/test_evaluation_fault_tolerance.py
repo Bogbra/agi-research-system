@@ -30,13 +30,27 @@ def _paper(id_: str) -> Paper:
     )
 
 
+_NO_SLEEP = lambda seconds: None  # noqa: E731
+_NO_JITTER = lambda: 0.0  # noqa: E731
+
+
 def _failing_evaluate_paper(bad_id: str, real_evaluate_paper):
     def _evaluate(paper: Paper, llm=None):
         if paper.id == bad_id:
-            raise RuntimeError(f"simulated failure for {paper.id}")
+            # A retryable failure (see evaluator.py's classification) so
+            # these tests exercise the "retries exhausted" path, not the
+            # fail-fast one — that's covered separately in
+            # tests/unit/test_evaluator_retry.py.
+            raise ConnectionError(f"simulated failure for {paper.id}")
         return real_evaluate_paper(paper, llm=llm)
 
     return _evaluate
+
+
+def _evaluate_no_sleep(state):
+    """`evaluation_node` with backoff disabled — these tests deliberately
+    exhaust retries, so without this they'd really wait out the backoff."""
+    return evaluation_node(state, sleep_fn=_NO_SLEEP, random_fn=_NO_JITTER)
 
 
 def test_one_failed_paper_does_not_stop_remaining_evaluations(monkeypatch):
@@ -51,7 +65,7 @@ def test_one_failed_paper_does_not_stop_remaining_evaluations(monkeypatch):
         current_phase=ResearchPhase.EVALUATION,
         discovered_papers=[_paper("good-1"), _paper("bad"), _paper("good-2")],
     )
-    update = evaluation_node(state)
+    update = _evaluate_no_sleep(state)
 
     assert len(update["evaluated_papers"]) == 2
     assert {p.paper.id for p in update["evaluated_papers"]} == {"good-1", "good-2"}
@@ -70,13 +84,13 @@ def test_failure_metadata_is_stored(monkeypatch):
         current_phase=ResearchPhase.EVALUATION,
         discovered_papers=[_paper("bad")],
     )
-    update = evaluation_node(state)
+    update = _evaluate_no_sleep(state)
 
     assert len(update["evaluation_failures"]) == 1
     failure = update["evaluation_failures"][0]
     assert failure.paper_id == "bad"
     assert failure.paper_title == "Paper bad"
-    assert failure.error_type == "RuntimeError"
+    assert failure.error_type == "ConnectionError"
     assert "simulated failure for bad" in failure.error_message
     assert failure.attempts == 3
 
@@ -93,7 +107,7 @@ def test_partial_success_completes_normally_with_failures_as_warnings(monkeypatc
         current_phase=ResearchPhase.EVALUATION,
         discovered_papers=[_paper("good-1"), _paper("bad")],
     )
-    eval_update = evaluation_node(state)
+    eval_update = _evaluate_no_sleep(state)
     state = state.model_copy(update=eval_update)
 
     supervisor_update = supervisor_node(state)
@@ -106,7 +120,7 @@ def test_partial_success_completes_normally_with_failures_as_warnings(monkeypatc
 
 def test_all_papers_failing_is_a_distinct_phase_not_normal_completion(monkeypatch):
     def _always_fail(paper: Paper, llm=None):
-        raise RuntimeError("everything is broken")
+        raise ConnectionError("everything is broken")
 
     monkeypatch.setattr(evaluator_module, "evaluate_paper", _always_fail)
 
@@ -116,7 +130,7 @@ def test_all_papers_failing_is_a_distinct_phase_not_normal_completion(monkeypatc
         current_phase=ResearchPhase.EVALUATION,
         discovered_papers=[_paper("only-1"), _paper("only-2")],
     )
-    eval_update = evaluation_node(state)
+    eval_update = _evaluate_no_sleep(state)
     state = state.model_copy(update=eval_update)
 
     assert eval_update["evaluated_papers"] == []
@@ -145,7 +159,7 @@ def test_final_report_can_be_produced_from_partial_results(monkeypatch):
         current_phase=ResearchPhase.EVALUATION,
         discovered_papers=[_paper("good-1"), _paper("bad"), _paper("good-2")],
     )
-    eval_update = evaluation_node(state)
+    eval_update = _evaluate_no_sleep(state)
     state = state.model_copy(update=eval_update)
     supervisor_update = supervisor_node(state)
 

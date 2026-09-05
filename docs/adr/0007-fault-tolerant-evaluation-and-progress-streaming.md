@@ -25,14 +25,29 @@ end to end rather than just unit-tested phase by phase:
 ## Decision
 
 **Fault-tolerant evaluation.** `agents/evaluator.py:evaluate_paper_with_retry`
-wraps `evaluate_paper` with up to `MAX_EVALUATION_ATTEMPTS` (3) immediate
-retries, catching `Exception` broadly — deliberately not a curated list of
-provider exception classes, since the retry count is capped regardless of
-what failed. It never raises: it returns `(evaluation, None)` on success or
-`(None, EvaluationFailure)` once every attempt is exhausted.
-`graph/build.py:evaluation_node` calls this once per paper in a loop,
-appending to either `evaluated_papers` or `evaluation_failures` — one
-paper's exhausted retries never stop the loop.
+wraps `evaluate_paper` with up to `MAX_EVALUATION_ATTEMPTS` (3) retries,
+waiting between attempts with exponential backoff plus jitter
+(`_backoff_seconds`: ~0.5s before attempt 2, ~1.0s before attempt 3, each
+plus up to 0.25s of random jitter) — enough to ride out a brief provider
+hiccup or rate-limit window, still small since there are at most two
+waits. Only `_is_retryable` failures are retried at all: a malformed
+structured-output response (`pydantic.ValidationError`) and known-transient
+provider errors (connection/timeout/rate-limit/5xx, from either the
+`openai` or `anthropic` SDK). Everything else — an authentication error, a
+bad request, a plain `TypeError` from a bug in this code — fails on the
+first attempt: retrying an exact repeat of a call that structurally can't
+succeed only burns attempts (and, against a real provider, money) for no
+chance of a different outcome. `EvaluationFailure.attempts` reflects how
+many tries actually happened, so a fail-fast case is visibly `attempts=1`,
+not padded to look like retries ran. It never raises: it returns
+`(evaluation, None)` on success or `(None, EvaluationFailure)` once
+retries are exhausted or a non-retryable error is hit.
+`graph/build.py:evaluation_node` calls this once per paper (through the
+thread pool described below), appending to either `evaluated_papers` or
+`evaluation_failures` — one paper's exhausted retries never stop the loop.
+`sleep_fn`/`random_fn` are injectable (default `time.sleep`/`random.random`)
+and threaded through `evaluation_node` too, so tests exercising a retried
+failure run in milliseconds instead of actually waiting out the backoff.
 
 `supervisor_node`'s `EVALUATION` branch then distinguishes two outcomes
 explicitly:
@@ -88,12 +103,15 @@ run in three batches (4, 4, 2), never 10 requests in flight at once.
   count) is a first-class part of `ResearchState` and the `RunDetail` API
   response — a caller can distinguish "this paper's evaluation failed
   three times, here's why" from "this paper was silently dropped."
-- No backoff between the three retry attempts (see
-  `evaluate_paper_with_retry`'s docstring) — they're aimed at flaky,
-  transient failures, not at riding out a sustained rate limit. Real
-  backoff/jitter is still follow-up work, gated on evidence from running
-  this concurrency-enabled version for real that immediate retries aren't
-  enough in practice.
+- Retry classification means a real, reproducible bug in this codebase
+  fails a paper's evaluation in one attempt, not three — `attempts=1` in
+  the resulting `EvaluationFailure` is itself evidence of which category a
+  failure fell into, without reading logs.
+- Backoff timing (`_backoff_seconds`) and the retryable/non-retryable
+  split (`_is_retryable`) are each covered by dedicated unit tests
+  (`tests/unit/test_evaluator_retry.py`) using injected `sleep_fn`/
+  `random_fn` — none of them, or the graph-level fault-tolerance tests
+  that exercise a fully-retried failure, wait out a real delay.
 - **Measured, not assumed, speedup**: the same 5-paper research run took
   22.1s wall-clock at `EVALUATION_CONCURRENCY=1` (fully sequential) and
   11.7s at the default of 4 — roughly 1.9x for 5 papers bounded by a limit

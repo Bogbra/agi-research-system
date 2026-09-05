@@ -1,7 +1,9 @@
 {
-  "timestamp": "2026-09-05T18:52:32.265045+00:00",
+  "timestamp": "2026-09-05T19:42:10.352515+00:00",
   "provider": "openai",
   "model": "gpt-4o-mini",
+  "prompt_sha256": "9d1218e63b6a822095efb1fe662492b97b843e24eb9927f9bf64cf7195211052",
+  "rubric_version": "1.0.0",
   "calibration": {
     "num_cases": 10,
     "passed": 8,
@@ -30,7 +32,7 @@
         "failure_mode": "strong benchmark result but no transfer",
         "min_score": 5,
         "max_score": 40,
-        "actual_score": 26.8,
+        "actual_score": 19.0,
         "classification": "Low AGI Potential",
         "passed": true
       },
@@ -48,7 +50,7 @@
         "failure_mode": "few-shot adaptation",
         "min_score": 45,
         "max_score": 85,
-        "actual_score": 64.8,
+        "actual_score": 63.0,
         "classification": "Medium AGI Potential",
         "passed": true
       },
@@ -57,7 +59,7 @@
         "failure_mode": "pure scaling result",
         "min_score": 0,
         "max_score": 30,
-        "actual_score": 20.1,
+        "actual_score": 21.3,
         "classification": "Low AGI Potential",
         "passed": true
       },
@@ -75,7 +77,7 @@
         "failure_mode": "strong claims with weak evidence",
         "min_score": 0,
         "max_score": 35,
-        "actual_score": 43.6,
+        "actual_score": 41.4,
         "classification": "Medium AGI Potential",
         "passed": false
       },
@@ -93,7 +95,7 @@
         "failure_mode": "ambiguous/borderline example",
         "min_score": 25,
         "max_score": 65,
-        "actual_score": 41.9,
+        "actual_score": 43.1,
         "classification": "Medium AGI Potential",
         "passed": true
       }
@@ -104,9 +106,9 @@
     "scores": [
       62.3,
       62.3,
-      62.1
+      63.8
     ],
-    "range": 0.19999999999999574,
-    "stdev": 0.09428090415820432
+    "range": 1.5,
+    "stdev": 0.7071067811865476
   }
 }

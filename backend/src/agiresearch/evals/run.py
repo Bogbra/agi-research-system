@@ -26,9 +26,10 @@ import json
 import sys
 from pathlib import Path
 
-from agiresearch.agents.evaluator import evaluate_paper
+from agiresearch.agents.evaluator import PROMPT_SHA256, evaluate_paper
 from agiresearch.config import settings
 from agiresearch.domain.schemas import Paper, PaperMetadata
+from agiresearch.domain.scoring import RUBRIC_VERSION
 from agiresearch.evals.result_logging import write_eval_result
 from agiresearch.llm.client import build_chat_model
 
@@ -114,6 +115,8 @@ def run_evals(provider: str | None, model: str | None) -> int:
         {
             "provider": settings.llm_provider,
             "model": settings.llm_model,
+            "prompt_sha256": PROMPT_SHA256,
+            "rubric_version": RUBRIC_VERSION,
             "num_cases": len(papers),
             "passed": len(papers) - failures,
             "failed": failures,

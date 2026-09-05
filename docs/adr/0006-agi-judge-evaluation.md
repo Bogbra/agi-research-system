@@ -45,42 +45,62 @@ whether any one run looks right.
 
 ## Consequences — what the eval actually found
 
-Run against real `gpt-4o-mini` (`--provider openai`) on 2026-09-05:
+**A real-model eval result is a snapshot of one run, not a permanent
+property of this system.** Every number below is tied to the exact
+snapshot file it came from, under `backend/eval-results/` — each file
+records `provider`, `model`, `prompt_sha256`
+(`agents/evaluator.py:PROMPT_SHA256`) and `rubric_version`
+(`domain/scoring.py:RUBRIC_VERSION`) precisely so that if a later run's
+numbers differ, it's possible to tell whether the model, the prompt, or
+the rubric changed, rather than treating a changed number as unexplained
+drift (or worse, leaving a stale number in this ADR after any of those
+things change). When re-running these evals, add a new snapshot file and
+update the references below to it — don't edit the numbers in place
+without pointing at what produced them.
 
-- **Golden cases: 3/3 passed.** Low scored 21.6/100 (band 0-39), Medium
-  scored 50.6/100 (band 40-69), High scored 77.1/100 (band 70-100) —
-  correctly ordered and correctly banded, no fixture tuning needed to get
-  there.
-- **Calibration: 8/10 passed.** Two real misses, reported as found rather
-  than adjusted after the fact:
+Referenced snapshots (`gpt-4o-mini`, `provider=openai`,
+`prompt_sha256=9d1218e6…052`, `rubric_version=1.0.0`):
+
+- **Golden cases — [`eval-results/golden-case-20260905T194108Z.json`](../../backend/eval-results/golden-case-20260905T194108Z.json): 3/3 passed.**
+  Low scored 26.4/100 (band 0-39), Medium scored 50.6/100 (band 40-69),
+  High scored 77.1/100 (band 70-100) — correctly ordered and correctly
+  banded, no fixture tuning needed to get there.
+- **Calibration — [`eval-results/judge-reliability-20260905T194210Z.json`](../../backend/eval-results/judge-reliability-20260905T194210Z.json): 8/10 passed.**
+  Two real misses, reported as found rather than adjusted after the fact,
+  and reproduced (same two cases, similar scores) across two independent
+  real runs on the same day:
   - `reasoning-improvement-limited-to-one-benchmark` scored 40.9, one point
     above its expected [10, 40] band — a near-miss at the boundary,
     plausibly a case where the expected band was drawn slightly too tight
     rather than a real judge error.
-  - `strong-claims-with-weak-evidence` scored 44.4 (Medium), well above its
+  - `strong-claims-with-weak-evidence` scored 41.4 (Medium), well above its
     expected [0, 35] band. The abstract claims "unprecedented general
     reasoning capability applicable to any domain" backed by one small
     synthetic dataset with no baselines or ablations — the judge gave this
     meaningfully more credit than the (thin) evidence supports, the exact
     failure mode this probe was built to catch. This is a genuine,
     reproducible calibration gap, not a fixture-tuning artifact: the
-    fixture was not adjusted after seeing this result.
+    fixture was not adjusted after seeing this result, in either run.
   - Every other probe — including the hype-language case, the
     conservative-wording case, and the deliberately ambiguous
-    borderline case — landed inside its expected band.
-- **Self-consistency: scores `[63.8, 62.3, 62.1]`, stdev 0.76.** Tight
-  enough that a single run's score is a reasonable signal on its own; this
-  is worth re-checking if the model or prompt changes, not assumed to
-  hold forever.
+    borderline case — landed inside its expected band in both runs.
+- **Self-consistency (same snapshot file, `self_consistency` key): scores
+  `[62.3, 62.3, 63.8]`, stdev 0.71.** Tight enough that a single run's
+  score is a reasonable signal on its own; this is worth re-checking if
+  the model or prompt changes, not assumed to hold forever. (An earlier
+  run the same day recorded stdev 0.09 on a different fixed paper
+  instance — both small, neither a claim of a fixed stdev going forward.)
 - The honest summary: this judge is reasonably well-calibrated against
   hype/vocabulary tricks and narrow-vs-broad framing, but measurably
   under-penalizes strong claims backed by weak evidence — a real, useful
   finding rather than a clean pass, and exactly what this eval exists to
-  surface. Ten cases is still not a statistically representative sample —
-  see `judge_reliability.py`'s own docstring — but it's wide enough now to
+  surface, confirmed reproducible rather than a one-off fluke. Ten cases
+  is still not a statistically representative sample — see
+  `judge_reliability.py`'s own docstring — but it's wide enough now to
   have caught something, which two cases was not.
 - Both eval scripts run fully offline as CI smoke tests (`LLM_PROVIDER=fake`,
-  exit 0 regardless of score match) and are otherwise a manual/periodic
+  exit 0 regardless of score match, and never write to `eval-results/` in
+  that mode — see `result_logging.py`) and are otherwise a manual/periodic
   check before shipping a prompt change, the same reason the golden-case
   and calibration numbers above aren't a per-commit CI gate: they cost
   real API calls and, per the self-consistency check itself, aren't

@@ -11,6 +11,9 @@ of scattered across edge conditions.
 
 from __future__ import annotations
 
+import random
+import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import Literal
@@ -90,7 +93,12 @@ def discovery_node(state: ResearchState) -> dict:
     return {"discovered_papers": result.papers}
 
 
-def evaluation_node(state: ResearchState, llm=None) -> dict:
+def evaluation_node(
+    state: ResearchState,
+    llm=None,
+    sleep_fn: Callable[[float], None] = time.sleep,
+    random_fn: Callable[[], float] = random.random,
+) -> dict:
     """Evaluate every discovered paper, isolating failures per paper and
     bounding how many run concurrently.
 
@@ -111,7 +119,9 @@ def evaluation_node(state: ResearchState, llm=None) -> dict:
     attributed to the wrong paper and the output is deterministic under
     the offline fake LLM even though execution order across threads is
     not. `llm` defaults to `build_chat_model()` — tests pass a stub to
-    control response timing/failures without a real provider.
+    control response timing/failures without a real provider. `sleep_fn`/
+    `random_fn` are forwarded to every `evaluate_paper_with_retry` call so
+    tests exercising a retried failure never wait out a real backoff.
     """
 
     llm = llm or build_chat_model()
@@ -119,7 +129,9 @@ def evaluation_node(state: ResearchState, llm=None) -> dict:
     failures = list(state.evaluation_failures)
 
     def _evaluate(paper: Paper):
-        evaluation, failure = evaluate_paper_with_retry(paper, llm=llm)
+        evaluation, failure = evaluate_paper_with_retry(
+            paper, llm=llm, sleep_fn=sleep_fn, random_fn=random_fn
+        )
         return paper, evaluation, failure
 
     max_workers = max(1, settings.evaluation_concurrency)

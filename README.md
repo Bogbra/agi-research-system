@@ -63,9 +63,13 @@ The short version — the full reasoning for each decision is in
   not asserted. The honest results, including the methodology's own limits,
   are in the ADR.
 - **[One paper's evaluation failing can't take down the whole run.](docs/adr/0007-fault-tolerant-evaluation-and-progress-streaming.md)**
-  Each paper gets up to 3 isolated retry attempts; a paper that still fails
-  is recorded (id, title, error, attempt count) and skipped, not fatal to
-  the other nine. Papers evaluate through a bounded thread pool
+  Each paper gets up to 3 isolated retry attempts, with exponential
+  backoff and jitter between them — but only for failures worth retrying
+  (a malformed structured-output response, a connection/timeout/rate-limit
+  error); a plain bug in this code fails fast on the first attempt instead
+  of burning all three. A paper that still fails is recorded (id, title,
+  error, attempt count) and skipped, not fatal to the other nine. Papers
+  evaluate through a bounded thread pool
   (`EVALUATION_CONCURRENCY`, default 4) — a measured 1.9x speedup on a
   5-paper run, never an unbounded burst of concurrent LLM calls. The same
   ADR fixes a second bug — the API and the graph could each mint a
@@ -180,19 +184,24 @@ end to end — real phase machine, real dedup/validation, real weighted-score
 arithmetic — against the offline fake LLM and fake arXiv stand-in, so it
 needs no API key and no network access.
 
-`evals/run.py` and `evals/judge_reliability.py` are both explained in full,
-with real `gpt-4o-mini` numbers, in
-[ADR 0006](docs/adr/0006-agi-judge-evaluation.md). Short version: 3/3
+`evals/run.py` and `evals/judge_reliability.py` are both explained in full
+in [ADR 0006](docs/adr/0006-agi-judge-evaluation.md), which names the
+exact dated snapshot file under `backend/eval-results/` each number below
+came from — a real-model eval result is a point-in-time snapshot (tagged
+with the provider, model, prompt hash, and rubric version that produced
+it), not a permanent property of this system, and the ADR is the place to
+check for whatever the latest snapshot says rather than trusting a number
+quoted here to still be current. As of the snapshots referenced there: 3/3
 golden papers landed in the right score band, and 8/10 calibration probes
 (one per named failure mode — hype language, benchmark-only results,
 cross-domain transfer, pure scaling, weak evidence for a strong claim,
-...) did too. The two misses are reported as found, not tuned away: the
-judge measurably under-penalizes strong claims backed by weak evidence —
-a real calibration gap, and exactly the kind of finding this eval exists
-to surface. Repeat-call self-consistency stayed tight (stdev 0.76 on a
-0-100 scale). Both scripts also run fully offline as CI smoke tests — not
-a quality gate in that mode, since the fake judge is a keyword heuristic,
-not a real judgment.
+...) did too, reproduced across two independent runs. The two misses are
+reported as found, not tuned away: the judge measurably under-penalizes
+strong claims backed by weak evidence — a real calibration gap, and
+exactly the kind of finding this eval exists to surface. Both scripts also
+run fully offline as CI smoke tests — not a quality gate in that mode,
+and never writing to `eval-results/`, since the fake judge is a keyword
+heuristic, not a real judgment.
 
 ## What the score means
 

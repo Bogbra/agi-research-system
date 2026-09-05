@@ -20,6 +20,14 @@ class ParameterWeight(NamedTuple):
     description: str
 
 
+# Bumped whenever AGI_PARAMETERS' set of parameters or their weights change
+# structurally. Logged alongside every real-model eval result
+# (`evals/result_logging.py`) so a later score change can be attributed to
+# a rubric change, a prompt change (`agents/evaluator.py:PROMPT_SHA256`),
+# or a model change — not left as an unexplained number drift.
+RUBRIC_VERSION = "1.0.0"
+
+
 # Single source of truth for parameter names and weights — domain/schemas.py
 # imports AGI_PARAMETERS.keys() to validate that a judged evaluation scored
 # every parameter, rather than duplicating this list a second time.
