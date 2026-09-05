@@ -1,7 +1,7 @@
 """Deterministic arXiv discovery: search, deduplicate, validate.
 
 No LLM involved — see docs/adr/0002-direct-tool-call-instead-of-react-agent.md
-for why `agents/discovery.py` calls this module directly instead of
+for why `services/discovery.py` calls this module directly instead of
 wrapping it in a ReAct tool-calling agent.
 
 `search_arxiv` (network I/O) and `deduplicate_and_validate` (pure) are

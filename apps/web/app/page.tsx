@@ -35,7 +35,7 @@ export default async function RunsPage() {
                 <th className="px-4 py-3">Objective</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Papers</th>
-                <th className="px-4 py-3">Avg AGI score</th>
+                <th className="px-4 py-3">Avg rubric score</th>
                 <th className="px-4 py-3">Updated</th>
               </tr>
             </thead>

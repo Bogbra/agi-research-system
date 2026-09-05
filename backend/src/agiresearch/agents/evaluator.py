@@ -14,11 +14,17 @@ else it gets wrong. See docs/adr/0006-agi-judge-evaluation.md.
 
 from __future__ import annotations
 
+import logging
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agiresearch.domain.schemas import Paper, PaperEvaluation
+from agiresearch.domain.schemas import EvaluationFailure, Paper, PaperEvaluation
 from agiresearch.domain.scoring import AGI_PARAMETERS
 from agiresearch.llm.client import build_chat_model
+
+logger = logging.getLogger(__name__)
+
+MAX_EVALUATION_ATTEMPTS = 3
 
 SYSTEM_PROMPT = """You are an expert AGI evaluator. Analyze research papers for \
 their contribution to Artificial General Intelligence.
@@ -68,3 +74,56 @@ AGI PARAMETERS TO SCORE:
         [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=user_prompt)]
     )
     return evaluation.with_computed_score()
+
+
+def evaluate_paper_with_retry(
+    paper: Paper, llm=None, max_attempts: int = MAX_EVALUATION_ATTEMPTS
+) -> tuple[PaperEvaluation | None, EvaluationFailure | None]:
+    """`evaluate_paper`, isolated and bounded: up to `max_attempts` tries at
+    one paper, never more. One paper failing (a transient provider error,
+    a rate limit, a structured-output response the model got wrong) must
+    not take down a research run that's evaluating nine other papers fine.
+
+    Deliberately catches `Exception` broadly rather than a curated list of
+    provider exception classes: the failures worth retrying here span
+    pydantic's `ValidationError` (malformed structured output) and
+    provider-specific network/rate-limit exceptions from whichever LLM
+    backend is configured, and the retry count is capped regardless of
+    *what* failed — a broad catch inside a bounded loop is safe in a way a
+    broad catch around unbounded work is not.
+
+    No backoff between attempts: three immediate retries are aimed at
+    transient/flaky failures, not at riding out a sustained rate limit —
+    that would need real backoff and jitter, which is out of scope until
+    evidence (see item 9 / ADR follow-up) shows immediate retries aren't
+    enough in practice.
+
+    Returns `(evaluation, None)` on success or `(None, failure)` once every
+    attempt is exhausted — never raises, so a caller can loop over many
+    papers without a per-paper try/except of its own.
+    """
+
+    last_error: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return evaluate_paper(paper, llm=llm), None
+        except Exception as exc:  # noqa: BLE001 — see docstring
+            last_error = exc
+            logger.warning(
+                "Evaluation attempt %d/%d failed for paper %s (%s): %s",
+                attempt,
+                max_attempts,
+                paper.id,
+                type(exc).__name__,
+                exc,
+            )
+
+    assert last_error is not None  # the loop always runs at least once
+    failure = EvaluationFailure(
+        paper_id=paper.id,
+        paper_title=paper.title,
+        error_type=type(last_error).__name__,
+        error_message=str(last_error),
+        attempts=max_attempts,
+    )
+    return None, failure

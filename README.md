@@ -1,13 +1,35 @@
-# AGI Research Intelligence System
+# Agentic Research Intelligence System
 
-A multi-agent research pipeline: a planner turns a research objective into
-search keywords and a date range, a deterministic discovery step finds and
-deduplicates arXiv papers, and an evaluator agent scores each paper against
-a ten-parameter, weighted "AGI-advancement potential" rubric — with the
-judge itself calibrated and evaluated, not just the pipeline.
+A LangGraph-based agentic research pipeline combining structured LLM
+planning and paper evaluation with deterministic discovery, scoring, and
+reporting:
 
-It's built as a service: a LangGraph agent pipeline behind a FastAPI API,
+```
+LLM Planner  ->  deterministic Discovery  ->  LLM Evaluator  ->  deterministic scoring/reporting
+```
+
+An LLM planner turns a research objective into search keywords and a date
+range, a deterministic discovery service finds and deduplicates arXiv
+papers (no LLM — see [ADR 0002](docs/adr/0002-direct-tool-call-instead-of-react-agent.md)),
+an LLM evaluator judges each paper against a ten-parameter rubric, and a
+deterministic scorer/reporter turns those judgments into a weighted 0-100
+score and a report. Two of the four stages are plain, testable Python;
+only planning and evaluation touch an LLM at all — see
+[**what the score means**](#what-the-score-means) before treating the
+result as more than that.
+
+It's built as a service: the LangGraph pipeline behind a FastAPI API,
 persisted to Postgres/SQLite, with a Next.js dashboard on top.
+
+<p align="center">
+  <img src="docs/screenshots/runs-list.png" alt="Research runs list: three completed runs with objective, status, paper count, average rubric score, and last-updated time" width="800"><br>
+  <sub>Run queue — status, paper count, and average rubric score at a glance.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/run-detail.png" alt="Run detail: average AGI-rubric score with score-meaning disclaimer, and a ranked list of evaluated papers with scores, classifications, and key innovations" width="800"><br>
+  <sub>Run detail — the score-meaning disclaimer, and every paper ranked with its classification and key innovations.</sub>
+</p>
 
 ## Why it's built this way
 
@@ -40,6 +62,17 @@ The short version — the full reasoning for each decision is in
   and repeat-call self-consistency — run for real against `gpt-4o-mini`,
   not asserted. The honest results, including the methodology's own limits,
   are in the ADR.
+- **[One paper's evaluation failing can't take down the whole run.](docs/adr/0007-fault-tolerant-evaluation-and-progress-streaming.md)**
+  Each paper gets up to 3 isolated retry attempts; a paper that still fails
+  is recorded (id, title, error, attempt count) and skipped, not fatal to
+  the other nine. Papers evaluate through a bounded thread pool
+  (`EVALUATION_CONCURRENCY`, default 4) — a measured 1.9x speedup on a
+  5-paper run, never an unbounded burst of concurrent LLM calls. The same
+  ADR fixes a second bug — the API and the graph could each mint a
+  `request_id`, reconciled after the fact by a `model_copy` workaround —
+  down to one id, generated once, and adds a streaming interface so the
+  dashboard's polling shows real phase progress instead of only the final
+  outcome.
 
 ## Architecture
 
@@ -55,35 +88,41 @@ The short version — the full reasoning for each decision is in
                     │           FastAPI              │
                     │  research router · auth ·      │
                     │  rate limiting · SQLAlchemy     │
-                    │  (ResearchRunRecord)            │
+                    │  (ResearchRunRecord, persisted  │
+                    │   after every graph step)       │
                     └───────────────┬───────────────┘
-                                    │ BackgroundTasks
+                                    │ BackgroundTasks (see limits below)
+                                    │ + stream_research() snapshots
                     ┌───────────────▼───────────────┐
                     │        LangGraph pipeline      │
                     │                                │
                     │   supervisor (phase machine)   │
                     │        │      │      │         │
-                    │     planner discovery evaluation│ ← sequential
-                    │        │      │      │         │
+                    │     planner discovery evaluation│ ← planner/discovery
+                    │      (LLM)   (service) (LLM,    │   sequential;
+                    │        │      │      per-paper, │   evaluation runs
+                    │        │      │  bounded pool + │   up to N papers
+                    │        │      │  retry+isolate) │   concurrently
                     │        └──────┴──────┘         │
                     │            supervisor          │
                     └───────────────┬───────────────┘
                                     │
                      ┌──────────────┼──────────────┐
                      ▼              ▼              ▼
-              domain/scoring   tools/arxiv_search  reports.py
+              domain/scoring   services/discovery  reports.py
               (deterministic)  (deterministic)     (deterministic)
 ```
 
 ## Repository layout
 
 ```
-backend/            Python: domain logic, agents, graph, arXiv tool, FastAPI service
+backend/            Python: domain logic, agents, graph, arXiv service, FastAPI service
   src/agiresearch/
     domain/          Pure business logic: AGI scoring, typed schemas
     llm/             Provider-agnostic client + offline fake model
     tools/           arXiv search/dedup/validate + offline fake stand-in
-    agents/          Planner, discovery ("agent" = direct tool call), evaluator
+    agents/          planner.py, evaluator.py — the two stages that call an LLM
+    services/        discovery.py — deterministic, not an agent (see ADR 0002)
     graph/           The LangGraph pipeline definition
     api/             FastAPI app: routers, auth, persistence, rate limiting
     evals/           Golden-case classification + judge reliability/calibration evals
@@ -143,12 +182,43 @@ needs no API key and no network access.
 
 `evals/run.py` and `evals/judge_reliability.py` are both explained in full,
 with real `gpt-4o-mini` numbers, in
-[ADR 0006](docs/adr/0006-agi-judge-evaluation.md). Short version: 3/3 golden
-papers classified into the right band, both calibration probes resisted
-being fooled by hype or unpersuaded by unhyped substance, and repeat-call
-self-consistency stayed tight (stdev 0.76 on a 0-100 scale). Both scripts
-also run fully offline as CI smoke tests — not a quality gate in that mode,
-since the fake judge is a keyword heuristic, not a real judgment.
+[ADR 0006](docs/adr/0006-agi-judge-evaluation.md). Short version: 3/3
+golden papers landed in the right score band, and 8/10 calibration probes
+(one per named failure mode — hype language, benchmark-only results,
+cross-domain transfer, pure scaling, weak evidence for a strong claim,
+...) did too. The two misses are reported as found, not tuned away: the
+judge measurably under-penalizes strong claims backed by weak evidence —
+a real calibration gap, and exactly the kind of finding this eval exists
+to surface. Repeat-call self-consistency stayed tight (stdev 0.76 on a
+0-100 scale). Both scripts also run fully offline as CI smoke tests — not
+a quality gate in that mode, since the fake judge is a keyword heuristic,
+not a real judgment.
+
+## What the score means
+
+The 0-100 score is an **experimental research-triage heuristic** based on
+an explicitly defined ten-parameter rubric (`domain/scoring.py`). It is
+intended to help prioritize papers for further human review — it is not,
+and is not presented as, an objective scientific measurement of AGI
+progress. Concretely:
+
+- Evaluation is based **primarily on paper abstracts and titles**, not full
+  papers — a real methodology section, ablation study, or reproduction
+  attempt could change a paper's actual merit in ways an abstract doesn't
+  reveal.
+- The LLM produces **qualitative parameter judgments** (a 1-10 score per
+  parameter, with reasoning) — this is a subjective, model-dependent
+  judgment call, not a measurement with an error bar.
+- The **weighted-score arithmetic itself is deterministic** (`domain/scoring.py`,
+  no LLM involved) — the score's uncertainty comes entirely from the
+  judgments feeding into it, not from the arithmetic.
+- Results are **prioritization signals**, ranking papers relative to each
+  other for this pipeline's own rubric — not authoritative conclusions
+  about which papers matter for AGI research.
+
+See [ADR 0006](docs/adr/0006-agi-judge-evaluation.md) for how the judge
+producing these scores is itself calibrated and evaluated, and what that
+evaluation did and didn't find.
 
 ## Security posture (and its limits)
 
@@ -162,3 +232,11 @@ since the fake judge is a keyword heuristic, not a real judgment.
   [ADR 0005](docs/adr/0005-persistence-and-auth.md): the auth token is a
   placeholder for a real identity provider, there's no encryption-at-rest,
   and the rate limiter doesn't survive multiple instances.
+- Research runs currently execute through FastAPI `BackgroundTasks`. This
+  is intentionally sufficient for the current deployment model, but
+  execution is process-local and not durable: job execution is tied to the
+  API process, an API process crash or restart can lose an in-progress
+  run, and there is currently no persistent job queue. A deployment
+  requiring guaranteed execution across process restarts would move jobs
+  to a persistent queue/worker architecture instead — not needed for this
+  version, see [ADR 0005](docs/adr/0005-persistence-and-auth.md).

@@ -1,6 +1,6 @@
 # agiresearch
 
-Multi-agent AI research intelligence system. See the repository root
+Agentic research intelligence pipeline. See the repository root
 `README.md` for the full project overview; this package contains the
-Python backend (domain scoring logic, LangGraph agent workflow, arXiv
-discovery tool, and the FastAPI service).
+Python backend (domain scoring logic, LangGraph pipeline, arXiv discovery
+service, and the FastAPI service).

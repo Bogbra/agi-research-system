@@ -1,6 +1,8 @@
-"""Discovery "agent": a direct call into the deterministic arXiv tool.
+"""Discovery service: a direct call into the deterministic arXiv tool.
 
-Not an LLM agent. A ReAct tool-calling agent whose only real job is
+Lives under `services/`, not `agents/` — there is no LLM here, and the
+project's own architecture decision (docs/adr/0002) is precisely that
+there shouldn't be. A ReAct tool-calling agent whose only real job is
 invoking one tool once, with arguments the execution plan has already
 fully determined, adds an LLM decision point (call the tool? with what
 args? how many times?) where none is needed. Calling `tools.arxiv_search`

@@ -27,6 +27,11 @@ class ResearchPhase(StrEnum):
     DISCOVERY = "discovery"
     EVALUATION = "evaluation"
     COMPLETION = "completion"
+    # Distinct from COMPLETION on purpose: every discovered paper failed
+    # evaluation (see evaluator.py's retry wrapper). A run in this phase
+    # must not read, in the API or the dashboard, as a normal successful
+    # completion that merely found zero papers worth reporting.
+    EVALUATION_FAILED = "evaluation_failed"
 
 
 # --------------------------------------------------------------------------
@@ -162,6 +167,20 @@ class EvaluatedPaper(BaseModel):
     evaluation: PaperEvaluation
 
 
+class EvaluationFailure(BaseModel):
+    """One paper that failed evaluation after exhausting retries — see
+    `agents/evaluator.py:evaluate_paper_with_retry`. Recorded instead of
+    silently dropping the paper, so a run's report and API response can
+    show exactly which papers were skipped and why.
+    """
+
+    paper_id: str
+    paper_title: str
+    error_type: str
+    error_message: str
+    attempts: int
+
+
 # --------------------------------------------------------------------------
 # Run-level summary (used by the orchestrator, evals, and the API layer)
 # --------------------------------------------------------------------------
@@ -201,6 +220,7 @@ class ResearchState(BaseModel):
     execution_plan: ExecutionPlan | None = None
     discovered_papers: list[Paper] = Field(default_factory=list)
     evaluated_papers: list[EvaluatedPaper] = Field(default_factory=list)
+    evaluation_failures: list[EvaluationFailure] = Field(default_factory=list)
 
     final_report: str | None = None
     errors: list[str] = Field(default_factory=list)

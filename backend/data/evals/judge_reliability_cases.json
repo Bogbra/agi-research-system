@@ -1,18 +1,104 @@
 {
   "cases": [
     {
-      "id": "hype-language-should-not-fool-judge",
+      "id": "narrow-research-with-agi-hype-language",
+      "failure_mode": "narrow research with AGI hype language",
       "title": "Toward True Artificial General Intelligence: A Breakthrough Framework",
       "abstract": "We present a groundbreaking, revolutionary framework that represents a fundamental leap toward true Artificial General Intelligence, surpassing all prior work in the field. Concretely, we fine-tune a ResNet-18 image classifier on the CIFAR-10 dataset using standard data augmentation, achieving 94.1% test accuracy, a 0.3-point improvement over the previous baseline on this single benchmark.",
-      "max_classification": "Medium AGI Potential",
-      "note": "The abstract's own language overclaims (\"true AGI\", \"revolutionary\") but the described method is a narrow, single-benchmark image classifier with no generalization claim. The system prompt explicitly instructs 'focus on what the paper actually demonstrates, not just claims' — a judge that scores this High is scoring the marketing language, not the substance."
+      "expected_classification": "Low AGI Potential",
+      "min_score": 0,
+      "max_score": 39,
+      "note": "The abstract's own language overclaims (\"true AGI\", \"revolutionary\") but the described method is a narrow, single-benchmark image classifier with no generalization claim. The system prompt explicitly instructs 'focus on what the paper actually demonstrates, not just claims' — a judge that scores this Medium+ is scoring the marketing language, not the substance."
     },
     {
-      "id": "modest-language-should-not-undersell-substance",
+      "id": "broad-research-without-agi-terminology",
+      "failure_mode": "broad research without AGI terminology",
       "title": "Generalist Control Policies from Sparse Demonstration",
       "abstract": "We describe a single control policy that, without any task-specific retraining, solves 50 distinct simulated control tasks spanning locomotion, manipulation, and navigation, adapting to each new task from 3-5 demonstrations. The policy's internal representation transfers across task families with no architectural changes, and ablations show performance degrades smoothly rather than catastrophically as task diversity increases.",
-      "min_classification": "Medium AGI Potential",
+      "expected_classification": "Medium AGI Potential",
+      "min_score": 40,
+      "max_score": 100,
       "note": "No AGI branding or hype language anywhere in the abstract, but the described result — one policy, dozens of tasks across several domains, few-shot adaptation, graceful degradation — is a substantive cross-task generalization result. A judge that scores this Low because it doesn't say 'AGI' or 'general intelligence' is pattern-matching on vocabulary, not assessing the described capability."
+    },
+    {
+      "id": "strong-benchmark-result-but-no-transfer",
+      "failure_mode": "strong benchmark result but no transfer",
+      "title": "State-of-the-Art Results on GLUE via Increased Model Scale",
+      "abstract": "We train a larger transformer variant and achieve a new state-of-the-art average score on the GLUE benchmark, improving 1.8 points over the previous best model. All evaluation is conducted on the standard GLUE test suite; we do not evaluate on any out-of-distribution or transfer task, and the architecture is unchanged from prior work aside from parameter count.",
+      "expected_classification": "Low AGI Potential",
+      "min_score": 5,
+      "max_score": 40,
+      "note": "A genuine state-of-the-art result, but confined to one benchmark suite with an explicit statement of no transfer evaluation — a judge should not credit benchmark leadership alone as evidence of generalization."
+    },
+    {
+      "id": "cross-domain-transfer",
+      "failure_mode": "cross-domain transfer",
+      "title": "A Shared Representation for Language, Vision, and Control Tasks",
+      "abstract": "We train a single model on language modeling, image classification, and simulated robotic control jointly, then evaluate it zero-shot on held-out tasks in each of the three domains. The model outperforms domain-specific baselines trained from scratch on two of the three held-out domains, and its learned representations show measurable transfer (via linear probing) across all three, despite no domain received task-specific fine-tuning at evaluation time.",
+      "expected_classification": "Medium AGI Potential",
+      "min_score": 45,
+      "max_score": 85,
+      "note": "Genuine evidence of transfer across genuinely different domains (language, vision, control), with a held-out zero-shot evaluation design — the kind of result task_transfer and generalization_efficiency are meant to capture."
+    },
+    {
+      "id": "few-shot-adaptation",
+      "failure_mode": "few-shot adaptation",
+      "title": "Rapid Task Adaptation from a Handful of Examples via Meta-Learning",
+      "abstract": "We meta-train a model across a distribution of related tasks such that, at test time, it adapts to a novel task from only 3-5 labeled examples, without gradient updates to the base model. On 15 held-out tasks not seen during meta-training, adapted performance reaches 82% of a fully-supervised baseline trained on 200x more labeled data per task.",
+      "expected_classification": "Medium AGI Potential",
+      "min_score": 45,
+      "max_score": 85,
+      "note": "Textbook few-shot learning with a quantified comparison against a fully-supervised baseline — few_shot_learning and meta_learning should both credit this."
+    },
+    {
+      "id": "pure-scaling-result",
+      "failure_mode": "pure scaling result",
+      "title": "Scaling Laws Hold at 10x Parameter Count and Training Data",
+      "abstract": "We scale an existing transformer architecture by 10x in both parameter count and training tokens, with no architectural changes. Validation perplexity improves in line with previously published scaling laws, confirming the extrapolation holds at this scale. We do not evaluate any downstream task, capability, or generalization property beyond perplexity.",
+      "expected_classification": "Low AGI Potential",
+      "min_score": 0,
+      "max_score": 30,
+      "note": "Confirms an existing scaling law rather than demonstrating a new capability — no problem-solving, transfer, or reasoning evidence is even evaluated, so nothing here should score above 'minimal AGI relevance' on any parameter."
+    },
+    {
+      "id": "reasoning-improvement-limited-to-one-benchmark",
+      "failure_mode": "reasoning improvement limited to one benchmark",
+      "title": "Improving Chain-of-Thought Accuracy on GSM8K via a New Prompting Strategy",
+      "abstract": "We introduce a prompting strategy that improves accuracy on the GSM8K grade-school math benchmark by 4.2 points over standard chain-of-thought prompting, using the same underlying model with no fine-tuning. We evaluate exclusively on GSM8K and do not test the strategy on other reasoning benchmarks or task types.",
+      "expected_classification": "Low AGI Potential",
+      "min_score": 10,
+      "max_score": 40,
+      "note": "A real, specific improvement, but a prompting trick validated on one benchmark is closer to abstract_reasoning's narrow end than a demonstrated generalizable reasoning capability — the abstract itself disclaims broader evaluation."
+    },
+    {
+      "id": "strong-claims-with-weak-evidence",
+      "failure_mode": "strong claims with weak evidence",
+      "title": "A General Reasoning Engine Applicable to Any Domain",
+      "abstract": "Our system exhibits unprecedented general reasoning capability applicable to any domain, from mathematics to law to scientific discovery. We demonstrate this on a single synthetic dataset of 200 hand-constructed logic puzzles, with no comparison to any baseline model and no ablation of the proposed components.",
+      "expected_classification": "Low AGI Potential",
+      "min_score": 0,
+      "max_score": 35,
+      "note": "Sweeping claims (\"any domain\") backed by one small synthetic dataset, no baselines, no ablations — the evidence does not remotely support the claim's scope, and the judge should score the (thin) evidence, not the claim."
+    },
+    {
+      "id": "substantive-result-with-conservative-wording",
+      "failure_mode": "substantive result with conservative wording",
+      "title": "A Preliminary, Incremental Extension of Multi-Task Policy Learning",
+      "abstract": "We present a preliminary and incremental extension of existing multi-task learning methods. In our limited experiments, a single policy learns to solve 30 distinct simulated tasks spanning manipulation and navigation, adapting to each new task from 5 demonstrations without task-specific retraining, and generalizing to 10 held-out task variations not seen during training with no measurable drop in success rate.",
+      "expected_classification": "Medium AGI Potential",
+      "min_score": 45,
+      "max_score": 85,
+      "note": "The abstract undersells itself (\"preliminary\", \"incremental\", \"limited\") while describing a substantive multi-task, few-shot, zero-drop-off generalization result — a judge anchoring on the modest tone rather than the reported numbers would underscore this."
+    },
+    {
+      "id": "ambiguous-borderline-example",
+      "failure_mode": "ambiguous/borderline example",
+      "title": "Partial Transfer Across Three Related Manipulation Tasks",
+      "abstract": "We show that a policy trained on one robotic manipulation task transfers, with moderate fine-tuning, to two closely related manipulation tasks, reaching 65% of task-specific performance. We speculate, without directly testing, that the approach may extend to substantially different task families, and note that further work is needed to confirm this.",
+      "expected_classification": "Medium AGI Potential",
+      "min_score": 25,
+      "max_score": 65,
+      "note": "Deliberately ambiguous: a real but narrow (three related tasks, same domain) transfer result, paired with an explicitly untested, hedged speculation about broader transfer. This case isn't meant to pin an exact score — it checks the judge doesn't swing to either extreme (treating hedged speculation as evidence, or dismissing the real partial-transfer result entirely)."
     }
   ]
 }

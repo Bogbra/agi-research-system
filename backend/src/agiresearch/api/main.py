@@ -21,7 +21,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AGI Research Intelligence API",
-    description="Multi-agent research pipeline: submission, discovery, evaluation, and retrieval.",
+    description=(
+        "Agentic research pipeline (LLM planning + evaluation, deterministic discovery "
+        "and scoring): submission, discovery, evaluation, and retrieval."
+    ),
     version="0.1.0",
     lifespan=lifespan,
 )

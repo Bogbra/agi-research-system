@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-09-05T18:51:40.478917+00:00",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "num_cases": 3,
+  "passed": 3,
+  "failed": 0,
+  "cases": [
+    {
+      "id": "GOLDEN-LOW-001",
+      "min_score": 0,
+      "max_score": 39,
+      "actual_score": 20.8,
+      "classification": "Low AGI Potential",
+      "passed": true
+    },
+    {
+      "id": "GOLDEN-MEDIUM-001",
+      "min_score": 40,
+      "max_score": 69,
+      "actual_score": 50.6,
+      "classification": "Medium AGI Potential",
+      "passed": true
+    },
+    {
+      "id": "GOLDEN-HIGH-001",
+      "min_score": 70,
+      "max_score": 100,
+      "actual_score": 77.1,
+      "classification": "High AGI Potential",
+      "passed": true
+    }
+  ],
+  "mean_score": 49.5
+}

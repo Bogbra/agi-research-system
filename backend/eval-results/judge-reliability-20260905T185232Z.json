@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-09-05T18:52:32.265045+00:00",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "calibration": {
+    "num_cases": 10,
+    "passed": 8,
+    "failed": 2,
+    "cases": [
+      {
+        "id": "narrow-research-with-agi-hype-language",
+        "failure_mode": "narrow research with AGI hype language",
+        "min_score": 0,
+        "max_score": 39,
+        "actual_score": 23.4,
+        "classification": "Low AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "broad-research-without-agi-terminology",
+        "failure_mode": "broad research without AGI terminology",
+        "min_score": 40,
+        "max_score": 100,
+        "actual_score": 66.4,
+        "classification": "Medium AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "strong-benchmark-result-but-no-transfer",
+        "failure_mode": "strong benchmark result but no transfer",
+        "min_score": 5,
+        "max_score": 40,
+        "actual_score": 26.8,
+        "classification": "Low AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "cross-domain-transfer",
+        "failure_mode": "cross-domain transfer",
+        "min_score": 45,
+        "max_score": 85,
+        "actual_score": 56.2,
+        "classification": "Medium AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "few-shot-adaptation",
+        "failure_mode": "few-shot adaptation",
+        "min_score": 45,
+        "max_score": 85,
+        "actual_score": 64.8,
+        "classification": "Medium AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "pure-scaling-result",
+        "failure_mode": "pure scaling result",
+        "min_score": 0,
+        "max_score": 30,
+        "actual_score": 20.1,
+        "classification": "Low AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "reasoning-improvement-limited-to-one-benchmark",
+        "failure_mode": "reasoning improvement limited to one benchmark",
+        "min_score": 10,
+        "max_score": 40,
+        "actual_score": 40.9,
+        "classification": "Medium AGI Potential",
+        "passed": false
+      },
+      {
+        "id": "strong-claims-with-weak-evidence",
+        "failure_mode": "strong claims with weak evidence",
+        "min_score": 0,
+        "max_score": 35,
+        "actual_score": 43.6,
+        "classification": "Medium AGI Potential",
+        "passed": false
+      },
+      {
+        "id": "substantive-result-with-conservative-wording",
+        "failure_mode": "substantive result with conservative wording",
+        "min_score": 45,
+        "max_score": 85,
+        "actual_score": 54.9,
+        "classification": "Medium AGI Potential",
+        "passed": true
+      },
+      {
+        "id": "ambiguous-borderline-example",
+        "failure_mode": "ambiguous/borderline example",
+        "min_score": 25,
+        "max_score": 65,
+        "actual_score": 41.9,
+        "classification": "Medium AGI Potential",
+        "passed": true
+      }
+    ]
+  },
+  "self_consistency": {
+    "repeats": 3,
+    "scores": [
+      62.3,
+      62.3,
+      62.1
+    ],
+    "range": 0.19999999999999574,
+    "stdev": 0.09428090415820432
+  }
+}

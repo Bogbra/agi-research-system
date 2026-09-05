@@ -4,6 +4,7 @@ export type RunStatus =
   | "discovery"
   | "evaluation"
   | "completion"
+  | "evaluation_failed"
   | "failed";
 
 export type Classification = "Low AGI Potential" | "Medium AGI Potential" | "High AGI Potential";
@@ -28,6 +29,14 @@ export interface EvaluatedPaperView {
   key_innovations: string[];
 }
 
+export interface EvaluationFailureView {
+  paper_id: string;
+  paper_title: string;
+  error_type: string;
+  error_message: string;
+  attempts: number;
+}
+
 export interface RunDetail {
   request_id: string;
   research_objective: string;
@@ -36,6 +45,7 @@ export interface RunDetail {
   average_agi_score: number | null;
   final_report: string | null;
   evaluated_papers: EvaluatedPaperView[];
+  evaluation_failures: EvaluationFailureView[];
   errors: string[];
   error: string | null;
   execution_plan: Record<string, unknown> | null;

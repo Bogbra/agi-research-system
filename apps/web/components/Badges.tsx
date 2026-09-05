@@ -8,6 +8,7 @@ const STATUS_STYLES: Record<RunStatus, string> = {
   discovery: "bg-gold/15 text-gold-hover ring-gold/30",
   evaluation: "bg-gold/15 text-gold-hover ring-gold/30",
   completion: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
+  evaluation_failed: "bg-red-500/15 text-red-300 ring-red-500/30",
   failed: "bg-red-500/15 text-red-300 ring-red-500/30",
 };
 

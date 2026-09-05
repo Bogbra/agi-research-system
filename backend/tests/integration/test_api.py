@@ -35,11 +35,15 @@ def test_submit_get_and_list_research_run_flow():
         detail_response = client.get(f"/research/{request_id}", headers=AUTH)
         assert detail_response.status_code == 200
         detail = detail_response.json()
+        # Item 2: the same id end to end — API-generated, never regenerated
+        # by the graph, and identical to what GET returns.
+        assert detail["request_id"] == request_id
         assert detail["status"] == "completion"
         assert detail["paper_count"] > 0
         assert detail["average_agi_score"] is not None
         assert detail["final_report"] is not None
         assert len(detail["evaluated_papers"]) == detail["paper_count"]
+        assert detail["evaluation_failures"] == []
 
         list_response = client.get("/research", headers=AUTH)
         assert list_response.status_code == 200

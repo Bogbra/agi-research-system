@@ -24,6 +24,8 @@ def test_golden_papers_fixture_is_well_formed():
             "Medium AGI Potential",
             "High AGI Potential",
         }
+        # Range labels, not an exact expected score — see evals/run.py's docstring.
+        assert 0 <= paper["min_score"] <= paper["max_score"] <= 100
 
 
 def test_golden_case_eval_runs_offline_and_exits_zero():
@@ -34,10 +36,12 @@ def test_golden_case_eval_runs_offline_and_exits_zero():
 
 def test_calibration_cases_fixture_is_well_formed():
     cases = load_calibration_cases()
-    assert len(cases) >= 2
+    assert len(cases) >= 10  # one per named failure mode (see item 7)
+    failure_modes = {case["failure_mode"] for case in cases}
+    assert len(failure_modes) == len(cases)  # each failure mode covered once
     for case in cases:
         assert case["abstract"]
-        assert "max_classification" in case or "min_classification" in case
+        assert 0 <= case["min_score"] <= case["max_score"] <= 100
         assert case["note"]
 
 

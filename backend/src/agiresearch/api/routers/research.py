@@ -13,46 +13,52 @@ from agiresearch.api.auth import Principal, get_current_principal
 from agiresearch.api.db import ResearchRunRecord, get_db
 from agiresearch.api.schemas_api import (
     EvaluatedPaperView,
+    EvaluationFailureView,
     RunAcceptedResponse,
     RunDetail,
     RunSummary,
     SubmitResearchRequest,
 )
-from agiresearch.domain.schemas import ResearchPhase
-from agiresearch.orchestrator import run_research
+from agiresearch.domain.schemas import ResearchPhase, ResearchState
+from agiresearch.orchestrator import stream_research
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/research", tags=["research"])
 
 
+def _persist_state(db: Session, request_id: str, state: ResearchState) -> None:
+    record = db.get(ResearchRunRecord, request_id)
+    if record is None:
+        return
+
+    scores = [
+        p.evaluation.agi_score for p in state.evaluated_papers if p.evaluation.agi_score is not None
+    ]
+    record.status = state.current_phase.value
+    record.paper_count = len(state.evaluated_papers)
+    record.average_agi_score = round(sum(scores) / len(scores), 1) if scores else None
+    record.final_report = state.final_report
+    record.state_json = state.model_dump(mode="json")
+    db.add(record)
+    db.commit()
+
+
 def _execute_run(request_id: str, objective: str) -> None:
-    """Runs in a worker thread via BackgroundTasks; owns its own DB session."""
+    """Runs in a worker thread via BackgroundTasks; owns its own DB session.
+
+    Persists a snapshot after every graph step (`stream_research`, not
+    `run_research`) so a client polling `GET /research/{id}` sees real
+    phase progress — initialization -> planning -> discovery -> evaluation
+    -> completion — instead of only the final state once the whole run has
+    finished. See docs/adr/0007.
+    """
+
     from agiresearch.api.db import SessionLocal
 
     db = SessionLocal()
     try:
-        final_state = run_research(objective)
-        # run_research assigns its own request_id (a fresh uuid4) inside the
-        # graph; the DB row is keyed by the id generated at submission time,
-        # so overwrite it before persisting to keep the two in sync.
-        final_state = final_state.model_copy(update={"request_id": request_id})
-
-        record = db.get(ResearchRunRecord, request_id)
-        if record is None:
-            return
-
-        scores = [
-            p.evaluation.agi_score
-            for p in final_state.evaluated_papers
-            if p.evaluation.agi_score is not None
-        ]
-        record.status = final_state.current_phase.value
-        record.paper_count = len(final_state.evaluated_papers)
-        record.average_agi_score = round(sum(scores) / len(scores), 1) if scores else None
-        record.final_report = final_state.final_report
-        record.state_json = final_state.model_dump(mode="json")
-        db.add(record)
-        db.commit()
+        for state in stream_research(objective, request_id=request_id):
+            _persist_state(db, request_id, state)
     except Exception as exc:  # noqa: BLE001 — surfaced to the run record, not swallowed
         logger.exception("Research run failed for %s", request_id)
         record = db.get(ResearchRunRecord, request_id)
@@ -141,6 +147,16 @@ def get_research_run(
         )
         for item in state.get("evaluated_papers", [])
     ]
+    evaluation_failures = [
+        EvaluationFailureView(
+            paper_id=item["paper_id"],
+            paper_title=item["paper_title"],
+            error_type=item["error_type"],
+            error_message=item["error_message"],
+            attempts=item["attempts"],
+        )
+        for item in state.get("evaluation_failures", [])
+    ]
 
     return RunDetail(
         request_id=record.request_id,
@@ -150,6 +166,7 @@ def get_research_run(
         average_agi_score=record.average_agi_score,
         final_report=record.final_report,
         evaluated_papers=evaluated_papers,
+        evaluation_failures=evaluation_failures,
         errors=state.get("errors", []),
         error=record.error,
         execution_plan=state.get("execution_plan"),

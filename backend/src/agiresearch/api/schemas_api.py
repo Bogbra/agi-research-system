@@ -39,6 +39,14 @@ class EvaluatedPaperView(BaseModel):
     key_innovations: list[str]
 
 
+class EvaluationFailureView(BaseModel):
+    paper_id: str
+    paper_title: str
+    error_type: str
+    error_message: str
+    attempts: int
+
+
 class RunDetail(BaseModel):
     request_id: str
     research_objective: str
@@ -47,6 +55,7 @@ class RunDetail(BaseModel):
     average_agi_score: float | None
     final_report: str | None
     evaluated_papers: list[EvaluatedPaperView]
+    evaluation_failures: list[EvaluationFailureView]
     errors: list[str]
     error: str | None = None
     execution_plan: dict[str, Any] | None

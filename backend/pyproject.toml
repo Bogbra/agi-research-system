@@ -1,7 +1,7 @@
 [project]
 name = "agiresearch"
 version = "0.1.0"
-description = "Multi-agent AI research intelligence system: discovers arXiv papers and scores them for AGI-advancement potential via a weighted, judged rubric."
+description = "A LangGraph-based agentic research pipeline combining structured LLM planning and paper evaluation with deterministic discovery, scoring, and reporting."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

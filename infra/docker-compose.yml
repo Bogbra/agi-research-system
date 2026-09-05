@@ -28,6 +28,7 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       ARXIV_PROVIDER: ${ARXIV_PROVIDER:-fake}
+      EVALUATION_CONCURRENCY: ${EVALUATION_CONCURRENCY:-4}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       DATABASE_URL: postgresql+psycopg://agiresearch:agiresearch@postgres:5432/agiresearch

@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     default_lookback_days: int = 7
     default_max_papers: int = 10
 
+    # Bounded concurrency for per-paper evaluation (see docs/adr/0007) —
+    # deliberately not unbounded: this is the lever that keeps a research
+    # run's outbound LLM call rate under control regardless of how many
+    # papers were discovered.
+    evaluation_concurrency: int = 4
+
     # Storage
     database_url: str = f"sqlite:///{BACKEND_ROOT / 'data' / 'agiresearch.db'}"
 

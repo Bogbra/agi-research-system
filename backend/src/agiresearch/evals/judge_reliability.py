@@ -7,10 +7,14 @@ Two independent questions, neither answered by the golden-case eval
   asked to "focus on what the paper actually demonstrates, not just
   claims" can still be fooled by a hyped-up abstract describing a narrow
   method, or undersell a substantive result that never uses AGI buzzwords.
-  `data/evals/judge_reliability_cases.json` holds cases built specifically
-  to probe both directions, with a one-sided bound (`max_classification` /
-  `min_classification`) rather than an exact match — the point is "not
-  fooled," not "reproduces one specific score."
+  `data/evals/judge_reliability_cases.json` holds ten hand-written cases,
+  one per named failure mode (hype language, benchmark-only results,
+  cross-domain transfer, pure scaling, weak evidence for a strong claim,
+  conservative wording over a substantive result, an intentionally
+  ambiguous borderline case, ...), each labeled with a `[min_score,
+  max_score]` band rather than a single expected value — testing a
+  probabilistic judge against an exact score would be testing noise, not
+  calibration.
 
   Self-consistency — does the same paper get (roughly) the same score on
   repeat judgment? A judge whose score swings between Low and High on
@@ -29,16 +33,11 @@ from pathlib import Path
 from agiresearch.agents.evaluator import evaluate_paper
 from agiresearch.config import settings
 from agiresearch.domain.schemas import Paper, PaperMetadata
+from agiresearch.evals.result_logging import write_eval_result
 from agiresearch.llm.client import build_chat_model
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 CALIBRATION_CASES_PATH = BACKEND_ROOT / "data" / "evals" / "judge_reliability_cases.json"
-
-_CLASSIFICATION_ORDER = {
-    "Low AGI Potential": 0,
-    "Medium AGI Potential": 1,
-    "High AGI Potential": 2,
-}
 
 _SELF_CONSISTENCY_PAPER = Paper(
     id="SELF-CONSISTENCY-001",
@@ -78,41 +77,50 @@ def _paper_from_case(case: dict) -> Paper:
 
 
 def run_calibration_eval(llm=None) -> dict:
-    print("Calibration: judge vs. hand-built hype/substance probes")
+    print("Calibration: judge vs. hand-built failure-mode probes")
 
     llm = llm or build_chat_model()
     cases = load_calibration_cases()
     passed = 0
     failures: list[str] = []
+    case_results: list[dict] = []
 
     for case in cases:
         paper = _paper_from_case(case)
         evaluation = evaluate_paper(paper, llm=llm)
-        actual_rank = _CLASSIFICATION_ORDER[evaluation.classification]
-
-        ok = True
-        bound_desc = ""
-        if "max_classification" in case:
-            max_rank = _CLASSIFICATION_ORDER[case["max_classification"]]
-            ok = actual_rank <= max_rank
-            bound_desc = f"<= {case['max_classification']}"
-        if "min_classification" in case:
-            min_rank = _CLASSIFICATION_ORDER[case["min_classification"]]
-            ok = ok and actual_rank >= min_rank
-            bound_desc = f">= {case['min_classification']}"
+        score = evaluation.agi_score or 0.0
+        ok = case["min_score"] <= score <= case["max_score"]
 
         passed += ok
         marker = "PASS" if ok else "FAIL"
         print(
-            f"  [{marker}] {case['id']}: expected {bound_desc}, "
-            f"actual={evaluation.classification} (score={evaluation.agi_score})"
+            f"  [{marker}] {case['id']} ({case['failure_mode']}): "
+            f"expected [{case['min_score']}, {case['max_score']}], "
+            f"actual={score} ({evaluation.classification})"
         )
         if not ok:
             failures.append(case["id"])
             print(f"           note: {case['note']}")
 
+        case_results.append(
+            {
+                "id": case["id"],
+                "failure_mode": case["failure_mode"],
+                "min_score": case["min_score"],
+                "max_score": case["max_score"],
+                "actual_score": score,
+                "classification": evaluation.classification,
+                "passed": ok,
+            }
+        )
+
     print(f"\n  calibration: {passed}/{len(cases)} passed\n")
-    return {"total": len(cases), "passed": passed, "failures": failures}
+    return {
+        "total": len(cases),
+        "passed": passed,
+        "failures": failures,
+        "cases": case_results,
+    }
 
 
 def run_self_consistency_eval(repeats: int = 3, llm=None) -> dict:
@@ -155,9 +163,31 @@ def main() -> None:
         )
 
     llm = build_chat_model()
-    run_calibration_eval(llm=llm)
+    calibration = run_calibration_eval(llm=llm)
     print("=" * 70)
-    run_self_consistency_eval(repeats=args.repeats, llm=llm)
+    self_consistency = run_self_consistency_eval(repeats=args.repeats, llm=llm)
+
+    if settings.llm_provider != "fake":
+        result_path = write_eval_result(
+            "judge-reliability",
+            {
+                "provider": settings.llm_provider,
+                "model": settings.llm_model,
+                "calibration": {
+                    "num_cases": calibration["total"],
+                    "passed": calibration["passed"],
+                    "failed": calibration["total"] - calibration["passed"],
+                    "cases": calibration["cases"],
+                },
+                "self_consistency": {
+                    "repeats": args.repeats,
+                    "scores": self_consistency["scores"],
+                    "range": self_consistency["range"],
+                    "stdev": self_consistency["stdev"],
+                },
+            },
+        )
+        print(f"Result logged to {result_path}")
 
 
 if __name__ == "__main__":

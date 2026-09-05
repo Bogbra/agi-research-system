@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "AGI Research Console",
-  description: "Multi-agent research pipeline: run queue, discovery, and AGI-potential rankings.",
+  description: "Agentic research pipeline: run queue, discovery, and AGI-rubric rankings.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -18,7 +18,8 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
     throw error;
   }
 
-  const isProcessing = run.status !== "completion" && run.status !== "failed";
+  const isProcessing =
+    run.status !== "completion" && run.status !== "failed" && run.status !== "evaluation_failed";
   const rankedPapers = [...run.evaluated_papers].sort(
     (a, b) => (b.agi_score ?? 0) - (a.agi_score ?? 0),
   );
@@ -53,6 +54,29 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
+      {run.status === "evaluation_failed" && (
+        <div className="card border-red-500/30 bg-red-500/10 text-sm text-red-300">
+          Every discovered paper failed evaluation — this is not a normal completion that
+          simply found nothing. See the failures below for details.
+        </div>
+      )}
+
+      {run.evaluation_failures.length > 0 && (
+        <div className="card border-amber-500/30 bg-amber-500/10 space-y-2">
+          <h2 className="text-sm font-semibold text-amber-300">
+            Evaluation failures ({run.evaluation_failures.length})
+          </h2>
+          <ul className="space-y-1 text-sm text-amber-200">
+            {run.evaluation_failures.map((f) => (
+              <li key={f.paper_id}>
+                <span className="font-medium">{f.paper_title}</span> — {f.error_type} after{" "}
+                {f.attempts} attempt{f.attempts === 1 ? "" : "s"}: {f.error_message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {run.errors.length > 0 && (
         <div className="card border-amber-500/30 bg-amber-500/10 space-y-1">
           <h2 className="text-sm font-semibold text-amber-300">Notes</h2>
@@ -67,11 +91,24 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
       {run.average_agi_score !== null && (
         <div className="card space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-sm font-semibold text-fg">Average AGI score</h2>
+            <h2 className="text-sm font-semibold text-fg">Average AGI-rubric score</h2>
             <ScoreMeter score={run.average_agi_score} />
           </div>
           <p className="text-sm text-muted">
             {run.paper_count} paper{run.paper_count === 1 ? "" : "s"} evaluated
+          </p>
+          <p className="text-xs text-subtle">
+            Experimental abstract-level research-triage score; not an objective measure of AGI
+            progress. See{" "}
+            <a
+              href="https://github.com/Bogbra/agi-research-system#what-the-score-means"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-muted"
+            >
+              what the score means
+            </a>
+            .
           </p>
         </div>
       )}

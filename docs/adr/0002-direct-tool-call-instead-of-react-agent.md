@@ -14,9 +14,12 @@ them through exactly.
 
 ## Decision
 
-`agents/discovery.py` is a five-line function that reads `ExecutionPlan`'s
+`services/discovery.py` is a five-line function that reads `ExecutionPlan`'s
 fields and calls `tools.arxiv_search.discover_and_process_papers(...)`
-directly. No LLM, no tool-calling loop, no prompt.
+directly. No LLM, no tool-calling loop, no prompt. It lives under
+`services/`, not `agents/` — deliberately: it isn't one, and filing it next
+to `agents/planner.py` and `agents/evaluator.py` would blur exactly the
+distinction this ADR is making.
 
 ## Consequences
 

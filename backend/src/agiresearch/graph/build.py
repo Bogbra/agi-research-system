@@ -11,28 +11,30 @@ of scattered across edge conditions.
 
 from __future__ import annotations
 
-import uuid
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
-from agiresearch.agents.discovery import discover_papers
-from agiresearch.agents.evaluator import evaluate_paper
+from agiresearch.agents.evaluator import evaluate_paper_with_retry
 from agiresearch.agents.planner import plan_research
-from agiresearch.domain.schemas import EvaluatedPaper, ResearchPhase, ResearchState
+from agiresearch.config import settings
+from agiresearch.domain.schemas import EvaluatedPaper, Paper, ResearchPhase, ResearchState
 from agiresearch.llm.client import build_chat_model
 from agiresearch.reports import render_final_report
+from agiresearch.services.discovery import discover_papers
 
 
 def supervisor_node(state: ResearchState) -> dict:
     phase = state.current_phase
 
     if phase == ResearchPhase.INITIALIZATION:
-        return {
-            "request_id": state.request_id or str(uuid.uuid4()),
-            "current_phase": ResearchPhase.PLANNING,
-        }
+        # request_id is set once, by the caller, before the graph starts
+        # (see orchestrator.py) — the supervisor never generates one. A
+        # second ID generated here and reconciled later was exactly the
+        # bug this design replaced.
+        return {"current_phase": ResearchPhase.PLANNING}
 
     if phase == ResearchPhase.PLANNING:
         if state.execution_plan is not None:
@@ -51,9 +53,27 @@ def supervisor_node(state: ResearchState) -> dict:
         }
 
     if phase == ResearchPhase.EVALUATION:
+        warnings = [
+            f"Evaluation failed for '{f.paper_title}' ({f.paper_id}) after {f.attempts} "
+            f"attempt(s): {f.error_type}: {f.error_message}"
+            for f in state.evaluation_failures
+        ]
+        if state.evaluated_papers:
+            # Some (possibly all but one) papers evaluated fine — a normal
+            # completion, with per-paper failures surfaced as warnings.
+            next_phase = ResearchPhase.COMPLETION
+        else:
+            # Every discovered paper failed evaluation — this must not
+            # read like a normal completion that happened to find nothing
+            # worth reporting, so it gets its own distinct phase.
+            next_phase = ResearchPhase.EVALUATION_FAILED
+            warnings.append(
+                f"All {len(state.discovered_papers)} discovered paper(s) failed evaluation."
+            )
         return {
-            "current_phase": ResearchPhase.COMPLETION,
+            "current_phase": next_phase,
             "final_report": render_final_report(state),
+            "errors": [*state.errors, *warnings],
         }
 
     return {}
@@ -70,13 +90,48 @@ def discovery_node(state: ResearchState) -> dict:
     return {"discovered_papers": result.papers}
 
 
-def evaluation_node(state: ResearchState) -> dict:
-    llm = build_chat_model()
-    evaluated = [
-        EvaluatedPaper(paper=paper, evaluation=evaluate_paper(paper, llm=llm))
-        for paper in state.discovered_papers
-    ]
-    return {"evaluated_papers": evaluated}
+def evaluation_node(state: ResearchState, llm=None) -> dict:
+    """Evaluate every discovered paper, isolating failures per paper and
+    bounding how many run concurrently.
+
+    One paper's evaluation failing (after `evaluate_paper_with_retry`
+    exhausts its attempts) must not stop the rest from being evaluated —
+    see docs/adr/0007. Papers are evaluated through a fixed-size
+    `ThreadPoolExecutor` (`EVALUATION_CONCURRENCY`, default 4) rather than
+    one at a time or all at once: bounded, because an unbounded burst of
+    concurrent LLM calls is exactly the kind of outbound rate-limit risk a
+    growing discovered-paper count would otherwise create with no cap at
+    all; a pool rather than fully sequential, because paper evaluations
+    are independent of each other and there's no reason to pay their
+    latency one after another.
+
+    `executor.map` (not `as_completed`) is used deliberately: it returns
+    results in the same order as `state.discovered_papers` regardless of
+    which worker finishes first, so a result is never ambiguously
+    attributed to the wrong paper and the output is deterministic under
+    the offline fake LLM even though execution order across threads is
+    not. `llm` defaults to `build_chat_model()` — tests pass a stub to
+    control response timing/failures without a real provider.
+    """
+
+    llm = llm or build_chat_model()
+    evaluated: list[EvaluatedPaper] = []
+    failures = list(state.evaluation_failures)
+
+    def _evaluate(paper: Paper):
+        evaluation, failure = evaluate_paper_with_retry(paper, llm=llm)
+        return paper, evaluation, failure
+
+    max_workers = max(1, settings.evaluation_concurrency)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for paper, evaluation, failure in executor.map(_evaluate, state.discovered_papers):
+            if evaluation is not None:
+                evaluated.append(EvaluatedPaper(paper=paper, evaluation=evaluation))
+            else:
+                assert failure is not None
+                failures.append(failure)
+
+    return {"evaluated_papers": evaluated, "evaluation_failures": failures}
 
 
 def route_next_phase(
