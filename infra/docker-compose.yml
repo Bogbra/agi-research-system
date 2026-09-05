@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agiresearch
+      POSTGRES_USER: agiresearch
+      POSTGRES_PASSWORD: agiresearch
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agiresearch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Demo mode by default — no API key or network access required. Set
+      # LLM_PROVIDER=openai / ARXIV_PROVIDER=live for a live run. See ADR 0003.
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      ARXIV_PROVIDER: ${ARXIV_PROVIDER:-fake}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DATABASE_URL: postgresql+psycopg://agiresearch:agiresearch@postgres:5432/agiresearch
+      API_BEARER_TOKEN: ${API_BEARER_TOKEN:-dev-local-token}
+      CORS_ALLOW_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    depends_on:
+      - api
+    environment:
+      BACKEND_API_URL: http://api:8000
+      BACKEND_API_TOKEN: ${API_BEARER_TOKEN:-dev-local-token}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

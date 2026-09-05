@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+
+  /* Shared design tokens — kept identical across projects. */
+  --color-bg: #111113;
+  --color-surface: #18181b;
+  --color-surface-elevated: #222226;
+  --color-surface-raised: #2c2c31;
+  --color-fg: #f1f1ec;
+  --color-muted: #b9b9b1;
+  --color-subtle: #8a8a84;
+  --color-border: #333338;
+  --color-border-strong: #4a4a50;
+  --color-accent: #e8e8df;
+  --color-accent-fill: #e8e8df;
+  --color-accent-hover: #f1f1ec;
+  --color-accent-soft: #f1f1ec14;
+  --color-secondary: #2c2c31;
+  --color-secondary-hover: #38383e;
+  --color-gold: #8a8a84;
+  --color-gold-hover: #9a9a94;
+  --color-success: #d8d8d0;
+  --color-warning: #d8d8d0;
+  --color-danger: #f1f1ec;
+  --color-danger-soft: #f1f1ec1a;
+  --color-info: #d8d8d0;
+  --color-focus: #f1f1ec;
+  --color-primary-soft: #f1f1ec14;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+@layer utilities {
+  .card {
+    @apply rounded-xl border border-border bg-surface-elevated p-5 shadow-sm;
+  }
+  .label {
+    @apply text-xs uppercase tracking-wide text-muted;
+  }
+}

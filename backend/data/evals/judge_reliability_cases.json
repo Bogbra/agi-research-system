@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "id": "hype-language-should-not-fool-judge",
+      "title": "Toward True Artificial General Intelligence: A Breakthrough Framework",
+      "abstract": "We present a groundbreaking, revolutionary framework that represents a fundamental leap toward true Artificial General Intelligence, surpassing all prior work in the field. Concretely, we fine-tune a ResNet-18 image classifier on the CIFAR-10 dataset using standard data augmentation, achieving 94.1% test accuracy, a 0.3-point improvement over the previous baseline on this single benchmark.",
+      "max_classification": "Medium AGI Potential",
+      "note": "The abstract's own language overclaims (\"true AGI\", \"revolutionary\") but the described method is a narrow, single-benchmark image classifier with no generalization claim. The system prompt explicitly instructs 'focus on what the paper actually demonstrates, not just claims' — a judge that scores this High is scoring the marketing language, not the substance."
+    },
+    {
+      "id": "modest-language-should-not-undersell-substance",
+      "title": "Generalist Control Policies from Sparse Demonstration",
+      "abstract": "We describe a single control policy that, without any task-specific retraining, solves 50 distinct simulated control tasks spanning locomotion, manipulation, and navigation, adapting to each new task from 3-5 demonstrations. The policy's internal representation transfers across task families with no architectural changes, and ablations show performance degrades smoothly rather than catastrophically as task diversity increases.",
+      "min_classification": "Medium AGI Potential",
+      "note": "No AGI branding or hype language anywhere in the abstract, but the described result — one policy, dozens of tasks across several domains, few-shot adaptation, graceful degradation — is a substantive cross-task generalization result. A judge that scores this Low because it doesn't say 'AGI' or 'general intelligence' is pattern-matching on vocabulary, not assessing the described capability."
+    }
+  ]
+}

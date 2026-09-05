@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, tests, evals)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --extra dev --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check src tests
+
+      - name: Unit + integration tests
+        run: uv run pytest tests -q
+
+      - name: Golden-case classification eval (offline fake model)
+        # Not a quality gate — the fake judge is a keyword heuristic, not a
+        # real judgment (see evals/run.py's own docstring). This proves the
+        # harness runs end to end with no API key. Real numbers need
+        # --provider openai, which costs money and isn't fully
+        # deterministic run-to-run — see docs/adr/0006.
+        run: uv run python -m agiresearch.evals.run
+
+      - name: Judge reliability + self-consistency eval (offline fake model)
+        run: uv run python -m agiresearch.evals.judge_reliability
+
+  frontend:
+    name: Frontend (typecheck, lint, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build (runs ESLint as part of the production build)
+        run: npm run build

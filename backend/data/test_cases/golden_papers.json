@@ -1,0 +1,31 @@
+{
+  "papers": [
+    {
+      "id": "GOLDEN-LOW-001",
+      "title": "Fine-Tuning a Convolutional Network for Flower Species Classification",
+      "abstract": "We fine-tune a pretrained ResNet-50 convolutional network on a labeled dataset of flower images spanning 102 species. Using standard data augmentation and a cosine learning-rate schedule, our model reaches 97.8% top-1 accuracy on the held-out test split, improving 1.4 points over the previous best reported result on this benchmark. The approach is a direct application of transfer learning from ImageNet weights, with no architectural changes, and is evaluated exclusively on this single classification task.",
+      "authors": ["A. Botanist", "B. Vision"],
+      "categories": ["cs.CV"],
+      "expected_classification": "Low AGI Potential",
+      "note": "Narrow, single-task supervised classification with a known technique — no claim, and no demonstrated capability, of generalization beyond the one benchmark."
+    },
+    {
+      "id": "GOLDEN-MEDIUM-001",
+      "title": "Cross-Task Transfer Learning for Robotic Manipulation",
+      "abstract": "We train a manipulation policy on five simulated pick-and-place tasks and evaluate how well it transfers to two novel manipulation tasks after a small amount of task-specific fine-tuning (under 500 gradient steps). The policy reaches 78% success on the novel tasks post-fine-tuning, compared to 34% for a policy trained from scratch on the same limited data, demonstrating meaningful but not zero-shot transfer. We do not evaluate transfer outside the manipulation domain.",
+      "authors": ["C. Roboticist"],
+      "categories": ["cs.RO", "cs.LG"],
+      "expected_classification": "Medium AGI Potential",
+      "note": "Genuine cross-task transfer within one domain, with fine-tuning still required and no evidence of transfer beyond manipulation — a real but bounded generalization result."
+    },
+    {
+      "id": "GOLDEN-HIGH-001",
+      "title": "A General-Purpose Few-Shot Agent for Cross-Domain Reasoning and Autonomous Task Formulation",
+      "abstract": "We present an agent that, given only three to five demonstrations, learns to perform novel tasks spanning language reasoning, visual question answering, and simulated robotic control without any task-specific retraining. The agent autonomously decomposes an underspecified objective into sub-goals, selects among multiple internal learning strategies at test time based on early feedback, and maintains an explicit internal world model that it updates online. Across 40 held-out tasks spanning the three domains, the agent matches or exceeds task-specific baselines trained on 1000x more data, and its self-selected learning strategy correlates strongly with final task performance, indicating genuine meta-learning rather than memorized task templates.",
+      "authors": ["D. Generalist", "E. Researcher", "F. Scientist"],
+      "categories": ["cs.AI", "cs.LG", "cs.CL"],
+      "expected_classification": "High AGI Potential",
+      "note": "Demonstrates few-shot learning, cross-domain task transfer, autonomous goal decomposition, explicit world modeling, and meta-learning together, with results (not just claims) supporting each."
+    }
+  ]
+}

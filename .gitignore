@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+apps/web/.env.local
+apps/web/tsconfig.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+!apps/web/.env.local.example
+
+# Data / runtime artifacts
+backend/data/agiresearch.db
+*.sqlite3
+*.log
+
+# OS
+.DS_Store

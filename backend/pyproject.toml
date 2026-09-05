@@ -1,0 +1,50 @@
+[project]
+name = "agiresearch"
+version = "0.1.0"
+description = "Multi-agent AI research intelligence system: discovers arXiv papers and scores them for AGI-advancement potential via a weighted, judged rubric."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "langgraph>=0.2.60",
+    "langchain-core>=0.3.28",
+    "langchain-openai>=0.2.14",
+    "langchain-anthropic>=0.3.3",
+    "arxiv>=2.1.3",
+    "fastapi>=0.115.6",
+    "uvicorn[standard]>=0.34.0",
+    "sqlalchemy>=2.0.36",
+    "psycopg[binary]>=3.2.3",
+    "httpx>=0.28.1",
+    "python-multipart>=0.0.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.8.4",
+    "mypy>=1.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agiresearch"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI's `Depends(...)` as a default argument is the framework's
+# documented idiom, not the mutable-default footgun this rule targets.
+ignore = ["B008"]
