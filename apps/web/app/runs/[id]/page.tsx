@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { ClassificationBadge, ScoreMeter, StatusBadge } from "@/components/Badges";
@@ -124,9 +125,9 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
       {run.final_report && (
         <div className="card space-y-2">
           <h2 className="text-sm font-semibold text-fg">Full report</h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-fg">
-            {run.final_report}
-          </p>
+          <div className="prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown>{run.final_report}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>

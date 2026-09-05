@@ -32,9 +32,22 @@ const config: Config = {
         focus: "var(--color-focus)",
         "primary-soft": "var(--color-primary-soft)",
       },
+      typography: {
+        invert: {
+          css: {
+            "--tw-prose-body": "var(--color-fg)",
+            "--tw-prose-headings": "var(--color-fg)",
+            "--tw-prose-bold": "var(--color-fg)",
+            "--tw-prose-links": "var(--color-fg)",
+            "--tw-prose-bullets": "var(--color-muted)",
+            "--tw-prose-hr": "var(--color-border)",
+            "--tw-prose-counters": "var(--color-muted)",
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };
 
 export default config;

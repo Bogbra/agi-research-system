@@ -53,11 +53,12 @@ def render_final_report(state: ResearchState, top_n: int = 5) -> str:
         innovations = ", ".join(evaluation.key_innovations[:3]) or "n/a"
         lines += [
             f"### {i}. {paper.title}",
-            f"**Authors:** {authors}",
-            f"**AGI score:** {evaluation.agi_score}/100 ({evaluation.classification})",
-            f"**Key innovations:** {innovations}",
-            f"**Assessment:** {evaluation.overall_assessment}",
-            f"**Link:** {paper.link}",
+            "",
+            f"- **Authors:** {authors}",
+            f"- **AGI score:** {evaluation.agi_score}/100 ({evaluation.classification})",
+            f"- **Key innovations:** {innovations}",
+            f"- **Assessment:** {evaluation.overall_assessment}",
+            f"- **Link:** <{paper.link}>",
             "",
         ]
 
